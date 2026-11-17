@@ -6,7 +6,7 @@ on:
     paths:
       - 'ios/**'
       - '.github/workflows/ios.yml'
-      pull_request:
+  pull_request:
     paths:
       - 'ios/**'
       - '.github/workflows/ios.yml'
