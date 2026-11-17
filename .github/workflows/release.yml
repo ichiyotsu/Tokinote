@@ -104,7 +104,7 @@ jobs:
             Where-Object { $_.FullName -match '\\publish\\' } |
             Select-Object -First 1
           if (-not $exe) { throw "TokiNote.exe was not published" }
-          $name = "TokiNote-Windows-$tag-win-x64.zip"
+          $name = "TokiNote-$tag.zip"
           if (Test-Path $name) { Remove-Item $name }
           Compress-Archive -Path (Join-Path $exe.DirectoryName "*") -DestinationPath $name
           Add-Content -Path $env:GITHUB_ENV -Value "ASSET_NAME=$name"
@@ -146,7 +146,7 @@ jobs:
             TAG="${TAG#v}"
           fi
           chmod +x ios/scripts/unsigned-ipa.sh
-          ios/scripts/unsigned-ipa.sh "build/TokiNote-ios-${TAG}.ipa"
+          ios/scripts/unsigned-ipa.sh "build/TokiNote-${TAG}.ipa"
           find ios/build -name '*.ipa' -print
 
       - uses: actions/upload-artifact@v4
@@ -195,7 +195,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: TokiNote ${{ env.VERSION_NAME }}
+          name: ${{ env.VERSION_NAME }}
           body_path: ${{ env.NOTES_FILE }}
           prerelease: ${{ env.IS_PRERELEASE == 'true' }}
           make_latest: ${{ env.IS_PRERELEASE == 'false' }}
@@ -204,5 +204,5 @@ jobs:
             dist/TokiNote-${{ env.VERSION_NAME }}.apk
             dist/TokiNote-${{ env.VERSION_NAME }}.aab
             dist/focus-component-1.0.zip
-            dist/TokiNote-Windows-${{ env.VERSION_NAME }}-win-x64.zip
-            dist/TokiNote-ios-${{ env.VERSION_NAME }}.ipa
+            dist/TokiNote-${{ env.VERSION_NAME }}.zip
+            dist/TokiNote-${{ env.VERSION_NAME }}.ipa
