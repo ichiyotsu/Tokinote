@@ -92,7 +92,7 @@ jobs:
       - name: Publish self-contained unpackaged app
         run: dotnet publish src/TokiNote/TokiNote.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true
 
-      - name: Zip publish output
+      - name: Build installer
         shell: pwsh
         working-directory: ${{ github.workspace }}
         run: |
@@ -104,9 +104,11 @@ jobs:
             Where-Object { $_.FullName -match '\\publish\\' } |
             Select-Object -First 1
           if (-not $exe) { throw "TokiNote.exe was not published" }
-          $name = "TokiNote-$tag.zip"
+          $name = "TokiNote-$tag.exe"
           if (Test-Path $name) { Remove-Item $name }
-          Compress-Archive -Path (Join-Path $exe.DirectoryName "*") -DestinationPath $name
+          choco install innosetup --no-progress -y
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DPublishDir=$($exe.DirectoryName)" /DAppVersion=$tag /DOutputBaseName="TokiNote-$tag" /O"$pwd" windows/installer/tokinote.iss
+          if (-not (Test-Path $name)) { throw "Installer $name was not produced" }
           Add-Content -Path $env:GITHUB_ENV -Value "ASSET_NAME=$name"
           Get-Item $name | Select-Object FullName, Length
 
@@ -204,5 +206,5 @@ jobs:
             dist/TokiNote-${{ env.VERSION_NAME }}.apk
             dist/TokiNote-${{ env.VERSION_NAME }}.aab
             dist/focus-component-1.0.zip
-            dist/TokiNote-${{ env.VERSION_NAME }}.zip
+            dist/TokiNote-${{ env.VERSION_NAME }}.exe
             dist/TokiNote-${{ env.VERSION_NAME }}.ipa
