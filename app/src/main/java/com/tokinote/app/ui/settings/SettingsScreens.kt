@@ -1500,4 +1500,4 @@ private fun SettingSwitch(
 
 private fun appVersionName(context: Context): String = runCatching {
     context.packageManager.getPackageInfo(context.packageName, 0).versionName
-}.getOrNull() ?: "0.3.8"
+}.getOrNull() ?: "0.3.9"

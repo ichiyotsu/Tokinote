@@ -49,24 +49,29 @@ public class WindowsUpdateCheckerTests
     }
 
     [Fact]
-    public void Asset_picks_the_win_x64_zip()
+    public void Asset_prefers_the_installer_exe_then_the_win_x64_zip()
     {
         var asset = WindowsUpdateChecker.PickAsset([
-            new ReleaseAsset("TokiNote-0.3.7.apk", "https://github.com/a.apk"),
-            new ReleaseAsset("TokiNote-ios-0.3.7.ipa", "https://github.com/a.ipa"),
+            new ReleaseAsset("TokiNote-0.3.9.apk", "https://github.com/a.apk"),
+            new ReleaseAsset("TokiNote-ios-0.3.9.ipa", "https://github.com/a.ipa"),
             new ReleaseAsset("TokiNote-win-x86.zip", "https://github.com/a.zip"),
-            new ReleaseAsset("TokiNote-Windows-0.3.7-win-x64.zip", "https://github.com/b.zip"),
-            new ReleaseAsset("TokiNote-Setup-win-x64.exe", "https://github.com/setup.exe"),
+            new ReleaseAsset("TokiNote-Windows-0.3.8-win-x64.zip", "https://github.com/b.zip"),
+            new ReleaseAsset("TokiNote-0.3.9.exe", "https://github.com/setup.exe"),
         ]);
-        Assert.Equal("TokiNote-Windows-0.3.7-win-x64.zip", asset?.Name);
+        Assert.Equal("TokiNote-0.3.9.exe", asset?.Name);
+        // 没有 exe 时仍认旧的 zip 包。
+        Assert.Equal("TokiNote-Windows-0.3.8-win-x64.zip", WindowsUpdateChecker.PickAsset([
+            new ReleaseAsset("TokiNote-0.3.9.apk", "https://github.com/a.apk"),
+            new ReleaseAsset("TokiNote-Windows-0.3.8-win-x64.zip", "https://github.com/b.zip"),
+        ])?.Name);
         Assert.Null(WindowsUpdateChecker.PickAsset([
-            new ReleaseAsset("TokiNote-0.3.7.apk", "https://github.com/a.apk"),
-            new ReleaseAsset("TokiNote-Setup-win-x64.exe", "https://github.com/setup.exe"),
+            new ReleaseAsset("TokiNote-0.3.9.apk", "https://github.com/a.apk"),
+            new ReleaseAsset("TokiNote-ios-0.3.9.ipa", "https://github.com/a.ipa"),
         ]));
     }
 
     [Fact]
-    public void Parse_skips_drafts_and_releases_without_a_windows_zip()
+    public void Parse_skips_drafts_and_releases_without_a_windows_package()
     {
         const string json = """
             [
@@ -84,28 +89,28 @@ public class WindowsUpdateCheckerTests
     }
 
     [Fact]
-    public void Version_0_3_8_is_newer_and_releases_without_a_windows_zip_are_ignored()
+    public void Version_0_3_9_is_newer_and_releases_without_a_windows_package_are_ignored()
     {
-        Assert.True(WindowsUpdateChecker.IsNewer("0.3.8", "0.3.7"));
-        Assert.False(WindowsUpdateChecker.IsNewer("0.3.7", "0.3.8"));
-        Assert.False(WindowsUpdateChecker.IsNewer("0.3.8", "0.3.8"));
-        Assert.True(WindowsUpdateChecker.IsNewer("0.3.8", "0.3.8-beta.4"));
-        Assert.Equal("0.3.8", WindowsUpdateChecker.VersionFromTag("0.3.8"));
-        Assert.Equal("0.3.8", WindowsUpdateChecker.VersionFromTag("v0.3.8"));
-        Assert.True(WindowsUpdateChecker.IsPlainVersionTag("0.3.8"));
-        Assert.False(WindowsUpdateChecker.IsPlainVersionTag("ios-0.3.8"));
-        Assert.False(WindowsUpdateChecker.IsPlainVersionTag("windows-0.3.8"));
+        Assert.True(WindowsUpdateChecker.IsNewer("0.3.9", "0.3.8"));
+        Assert.False(WindowsUpdateChecker.IsNewer("0.3.8", "0.3.9"));
+        Assert.False(WindowsUpdateChecker.IsNewer("0.3.9", "0.3.9"));
+        Assert.True(WindowsUpdateChecker.IsNewer("0.3.9", "0.3.9-beta.4"));
+        Assert.Equal("0.3.9", WindowsUpdateChecker.VersionFromTag("0.3.9"));
+        Assert.Equal("0.3.9", WindowsUpdateChecker.VersionFromTag("v0.3.9"));
+        Assert.True(WindowsUpdateChecker.IsPlainVersionTag("0.3.9"));
+        Assert.False(WindowsUpdateChecker.IsPlainVersionTag("ios-0.3.9"));
+        Assert.False(WindowsUpdateChecker.IsPlainVersionTag("windows-0.3.9"));
 
         var latest = WindowsUpdateChecker.PickLatest([
-            Release("0.3.7"),
             Release("0.3.8"),
-            Release("0.3.9", zip: false),
+            Release("0.3.9"),
+            Release("0.3.10", zip: false),
             Release("ios-9.0.0"),
         ]);
-        Assert.Equal("0.3.8", latest?.Tag);
-        Assert.Equal("0.3.8", latest?.Version);
-        Assert.Equal("0.3.8", AppVersion.Current);
-        Assert.False(WindowsUpdateChecker.IsNewer(AppVersion.Current, "0.3.8"));
+        Assert.Equal("0.3.9", latest?.Tag);
+        Assert.Equal("0.3.9", latest?.Version);
+        Assert.Equal("0.3.9", AppVersion.Current);
+        Assert.False(WindowsUpdateChecker.IsNewer(AppVersion.Current, "0.3.9"));
     }
 
     [Fact]

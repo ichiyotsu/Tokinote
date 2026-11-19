@@ -287,7 +287,10 @@ public static class WindowsUpdateChecker
         return null;
     }
 
+    // 安装包改成 exe 后优先认 exe（TokiNote-<version>.exe）；旧的 zip 包
+    // 仍认，作回退：0.3.8 及更早的发布只有 zip。
     private static int Score(string name) =>
+        name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? 2 :
         name.EndsWith("-win-x64.zip", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
 
     private static string ReadString(JsonElement element, string name)
