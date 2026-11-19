@@ -231,6 +231,70 @@ class FocusTimerEngineTest {
     }
 
     @Test
+    fun `end returns the elapsed minutes and leaves the cycle untouched`() {
+        val clock = ManualClock()
+        val recorded = mutableListOf<FocusSession>()
+        val engine = engine(clock, recorder = recorded)
+        engine.toggle()
+        clock.advance(10 * 60_000L + 30_000L)
+
+        val segment = engine.end()
+
+        assertEquals(FocusMode.Focus, segment.mode)
+        assertEquals(10, segment.minutes)
+        assertEquals(630_000L, segment.elapsedMillis)
+        assertEquals(clock.wall, segment.endedAt)
+        assertTrue(recorded.isEmpty())
+        assertEquals(0, engine.state.value.completedInCycle)
+        assertEquals(FocusMode.Focus, engine.state.value.mode)
+        assertFalse(engine.state.value.running)
+        assertEquals(FocusPhase.Idle, engine.state.value.phase)
+        assertEquals(25 * 60, engine.state.value.remainingSeconds)
+    }
+
+    @Test
+    fun `end on a paused timer uses the remaining time`() {
+        val clock = ManualClock()
+        val engine = engine(clock)
+        engine.toggle()
+        clock.advance(5 * 60_000L)
+        engine.pause()
+        clock.advance(60_000L)
+
+        val segment = engine.end()
+
+        assertEquals(5, segment.minutes)
+        assertEquals(300_000L, segment.elapsedMillis)
+        assertEquals(FocusPhase.Idle, engine.state.value.phase)
+    }
+
+    @Test
+    fun `end on indefinite time counts the elapsed time`() {
+        val clock = ManualClock()
+        val engine = engine(clock)
+        engine.startIndefinite()
+        clock.advance(90_000L)
+
+        val segment = engine.end()
+
+        assertEquals(1, segment.minutes)
+        assertEquals(90_000L, segment.elapsedMillis)
+        assertFalse(engine.state.value.indefinite)
+        assertEquals(0, engine.state.value.elapsedSeconds)
+    }
+
+    @Test
+    fun `end on an idle timer reports zero elapsed`() {
+        val engine = engine(ManualClock())
+
+        val segment = engine.end()
+
+        assertEquals(0, segment.minutes)
+        assertEquals(0L, segment.elapsedMillis)
+        assertEquals(FocusPhase.Idle, engine.state.value.phase)
+    }
+
+    @Test
     fun `changing unrelated settings does not wipe a paused timer`() {
         val clock = ManualClock()
         val engine = engine(clock)

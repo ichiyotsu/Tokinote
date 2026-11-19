@@ -43,6 +43,12 @@
     <string name="focus_pause">暂停</string>
     <string name="focus_reset">重置</string>
     <string name="focus_skip">跳过</string>
+    <string name="focus_end">结束</string>
+    <string name="focus_end_record_title">是否记录？</string>
+    <string name="focus_end_record_body_focus">本次专注 %1$d 分钟，是否记入统计？</string>
+    <string name="focus_end_record_body_break">本次休息 %1$d 分钟，是否记入统计？</string>
+    <string name="focus_end_record">记录</string>
+    <string name="focus_end_discard">不记录</string>
     <string name="settings_appearance">外观</string>
     <string name="settings_appearance_sub">主题、深色模式</string>
     <string name="settings_timer">计时器</string>
@@ -155,6 +161,7 @@
     <string name="update_help_title">正式版与测试版</string>
     <string name="update_help_body">Release 为稳定版；Beta 会提前收到测试版，也可能收到更高的正式版。</string>
     <string name="album_empty">这个月还没有照片</string>
+    <string name="album_page_empty">还没有照片</string>
     <string name="album_download">保存到相册</string>
     <string name="album_downloaded">已保存到系统相册</string>
     <string name="album_locate">查看原笔记</string>
@@ -292,6 +299,10 @@
     <string name="components_intro">按需下载组件；未安装或未启用时，不会出现在底栏。</string>
     <string name="component_focus_name">专注</string>
     <string name="component_focus_desc">番茄钟、专注统计与计时器设置</string>
+    <string name="component_album_name">相册</string>
+    <string name="component_album_desc">全部照片集中展示，开启后相册从侧边栏移到到栏。</string>
+    <string name="component_album_enabled">启用相册组件</string>
+    <string name="component_album_enabled_hint">启用后底栏显示「相册」，侧边栏不再显示相册，可随时关闭。</string>
     <string name="component_status_installed">已下载 · v%1$s</string>
     <string name="component_status_missing">未下载</string>
     <string name="component_enabled">启用专注组件</string>

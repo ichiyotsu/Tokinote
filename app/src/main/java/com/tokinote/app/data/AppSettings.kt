@@ -59,6 +59,8 @@ data class AppSettings(
     val avatarPath: String = "",
     /** 可选的专注组件是否启用；组件未安装时始终视为未启用。 */
     val focusComponentEnabled: Boolean = false,
+    /** 内置的相册组件是否启用；启用后相册从侧边栏移到到栏，成为独立页面。 */
+    val albumComponentEnabled: Boolean = false,
 )
 
 /** 一段已完成的专注记录，用于统计。 */

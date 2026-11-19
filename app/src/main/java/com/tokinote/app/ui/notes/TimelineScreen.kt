@@ -60,9 +60,7 @@ import com.tokinote.app.data.AppSettings
 import com.tokinote.app.data.Label
 import com.tokinote.app.data.Note
 import com.tokinote.app.data.NoteGroup
-import androidx.compose.ui.graphics.Color
-import com.tokinote.app.ui.theme.LocalDarkTheme
-import com.tokinote.app.ui.theme.tokiGlass
+import com.tokinote.app.ui.theme.tokiChrome
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import java.time.Instant
@@ -80,6 +78,7 @@ fun TimelineScreen(
     folders: List<AlbumFolder>,
     labels: List<Label>,
     settings: AppSettings,
+    showAlbumInDrawer: Boolean = true,
     contentPadding: PaddingValues,
     onOpenNote: (String) -> Unit,
     onOpenMedia: (String, Int) -> Unit,
@@ -174,16 +173,9 @@ fun TimelineScreen(
     val headerInset = with(LocalDensity.current) { headerHeight.toDp() }
 
     val hazeState = rememberHazeState()
-    val darkTheme = LocalDarkTheme.current
-    val drawerGlass = Modifier.tokiGlass(
-        hazeState = hazeState,
-        blurRadius = 30.dp,
-        tints = listOf(
-            Color.Black.copy(alpha = if (darkTheme) 0.16f else 0.03f),
-            Color.White.copy(alpha = if (darkTheme) 0.08f else 0.10f),
-        ),
-        fallback = Color.Black.copy(alpha = if (darkTheme) 0.55f else 0.30f),
-    )
+    // 抽屉与搜索栏共用 App 级固定玻璃配方（24dp，对照 TokiStudio 0.1.10），
+    // 不再各处手写 30dp + 自定 tint。
+    val drawerGlass = tokiChrome(hazeState, backdropBlur = true)
 
     LaunchedEffect(previewNote) {
         onPreviewVisibilityChange(previewNote != null)
@@ -193,6 +185,10 @@ fun TimelineScreen(
     }
     LaunchedEffect(tab) {
         if (tab != HomeTab.Notes) topBarElevated = false
+    }
+    LaunchedEffect(showAlbumInDrawer) {
+        // 相册移到到栏后，抽屉里不再提供相册入口；之前停在相册页的状态回到笔记页。
+        if (!showAlbumInDrawer && tab == HomeTab.Album) tab = HomeTab.Notes
     }
     androidx.compose.runtime.DisposableEffect(Unit) {
         onDispose {
@@ -298,6 +294,7 @@ fun TimelineScreen(
     GroupDrawer(
         open = drawerOpen,
         selectedTab = tab,
+        showAlbum = showAlbumInDrawer,
         groups = groups,
         folders = folders,
         selectedGroupId = selectedGroupId,

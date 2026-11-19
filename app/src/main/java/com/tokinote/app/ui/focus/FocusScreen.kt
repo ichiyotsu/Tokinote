@@ -2,6 +2,11 @@ package com.tokinote.app.ui.focus
 
 import android.os.SystemClock
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -32,10 +37,13 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -77,6 +85,8 @@ fun FocusScreen(
     onSkip: () -> Unit,
     onOpenTimerSettings: () -> Unit,
     onScheduleIndefinite: (Long) -> Unit,
+    onEnd: () -> EndedSegment,
+    onRecordEnded: (EndedSegment) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val motion = LocalMotionEnabled.current
@@ -104,6 +114,7 @@ fun FocusScreen(
     )
 
     var animatingOut by remember { mutableStateOf(false) }
+    var endedSegment by remember { mutableStateOf<EndedSegment?>(null) }
     val timeScale by animateFloatAsState(
         targetValue = if (animatingOut) 2.4f else 1f,
         animationSpec = tween(420),
@@ -176,6 +187,10 @@ fun FocusScreen(
                         onToggle = onToggle,
                         onReset = onReset,
                         onSkip = onSkip,
+                        onEnd = {
+                            val segment = onEnd()
+                            if (segment.minutes >= 1) endedSegment = segment
+                        },
                     )
                 }
             }
@@ -207,6 +222,10 @@ fun FocusScreen(
                     onToggle = onToggle,
                     onReset = onReset,
                     onSkip = onSkip,
+                    onEnd = {
+                        val segment = onEnd()
+                        if (segment.minutes >= 1) endedSegment = segment
+                    },
                 )
             }
         }
@@ -218,6 +237,40 @@ fun FocusScreen(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 8.dp, end = 12.dp),
+        )
+    }
+
+    endedSegment?.let { segment ->
+        AlertDialog(
+            onDismissRequest = { endedSegment = null },
+            title = { Text(stringResource(R.string.focus_end_record_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        if (segment.mode == FocusMode.Focus) {
+                            R.string.focus_end_record_body_focus
+                        } else {
+                            R.string.focus_end_record_body_break
+                        },
+                        segment.minutes,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onRecordEnded(segment)
+                        endedSegment = null
+                    },
+                ) {
+                    Text(stringResource(R.string.focus_end_record))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { endedSegment = null }) {
+                    Text(stringResource(R.string.focus_end_discard))
+                }
+            },
         )
     }
 }
@@ -327,6 +380,7 @@ private fun FocusActions(
     onToggle: () -> Unit,
     onReset: () -> Unit,
     onSkip: () -> Unit,
+    onEnd: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -356,6 +410,23 @@ private fun FocusActions(
                 container = secondaryContainer,
                 onClick = onSkip,
             )
+        }
+
+        AnimatedVisibility(
+            visible = state.phase != FocusPhase.Idle,
+            enter = fadeIn(tween(200)) + expandVertically(tween(260)),
+            exit = fadeOut(tween(160)) + shrinkVertically(tween(220)),
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Spacer(Modifier.height(10.dp))
+                EndFocusButton(
+                    container = secondaryContainer,
+                    onClick = onEnd,
+                    modifier = Modifier
+                        .widthIn(max = 360.dp)
+                        .fillMaxWidth(),
+                )
+            }
         }
 
         Spacer(Modifier.height(22.dp))
@@ -463,6 +534,48 @@ private fun PrimaryFocusButton(
             Text(
                 text = stringResource(if (running) R.string.focus_pause else R.string.focus_play),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            )
+        }
+    }
+}
+
+@Composable
+private fun EndFocusButton(
+    container: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(22.dp),
+        color = container,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        interactionSource = interaction,
+        modifier = modifier
+            .height(56.dp)
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                RoundedCornerShape(22.dp),
+            )
+            .pressScale(interaction, pressedScale = 0.94f),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Stop,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = stringResource(R.string.focus_end),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
             )
         }
     }

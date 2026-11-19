@@ -46,3 +46,34 @@ val ExpressiveFabShape = RoundedCornerShape(
 val ExpressiveIslandShape = RoundedCornerShape(34.dp)
 val ExpressiveSheetShape = RoundedCornerShape(topStart = 34.dp, topEnd = 34.dp)
 
+/**
+ * 间距：M3 的 4dp 基线网格阶梯（对照 TokiStudio 0.1.10）；紧凑窗口的页面
+ * 水平边距为 24dp。标题、底栏等统一读这里，不再各处手写数值。
+ */
+object TokiSpacing {
+    val xs: androidx.compose.ui.unit.Dp = 4.dp
+    val sm: androidx.compose.ui.unit.Dp = 8.dp
+    val md: androidx.compose.ui.unit.Dp = 12.dp
+    val lg: androidx.compose.ui.unit.Dp = 16.dp
+    val xl: androidx.compose.ui.unit.Dp = 24.dp
+    val xxl: androidx.compose.ui.unit.Dp = 32.dp
+
+    /** 页面水平边距（紧凑窗口 margin）：24dp。 */
+    val pageMargin: androidx.compose.ui.unit.Dp = xl
+
+    /**
+     * 大标题字形相对页面边距再往里的距离。滚动标题色块的文字内边距用它，
+     * 这样标题和下面的正文左缘是同一条线。
+     */
+    val titleGlyphInset: androidx.compose.ui.unit.Dp = lg
+
+    /** 悬浮容器与屏幕边缘的间距量级。 */
+    val floatingBarMargin: androidx.compose.ui.unit.Dp = 16.dp
+
+    /** 悬浮导航下方留给内容的安全间距（在实测底栏高度之外追加）。 */
+    val contentGap: androidx.compose.ui.unit.Dp = 16.dp
+
+    /** 窗口宽度达到此值时，主导航从悬浮胶囊换成 NavigationRail。 */
+    val expandedWindow: androidx.compose.ui.unit.Dp = 840.dp
+}
+

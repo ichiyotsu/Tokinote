@@ -75,6 +75,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -122,6 +124,7 @@ fun JournalEditorScreen(
     labels: List<Label>,
     showTime: Boolean,
     contentPadding: PaddingValues,
+    glass: Modifier = Modifier,
     onBack: () -> Unit,
     onChange: (Note) -> Unit,
     onDelete: () -> Unit,
@@ -194,19 +197,12 @@ fun JournalEditorScreen(
     }
 
     val scrollState = rememberScrollState()
+    val titleFocusRequester = remember { FocusRequester() }
     var collapsed by remember { mutableStateOf(false) }
     androidx.compose.runtime.LaunchedEffect(scrollState.value) {
         if (scrollState.value > 72 && !collapsed) collapsed = true
         if (scrollState.value < 6 && collapsed) collapsed = false
     }
-    val collapseProgress by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (collapsed) 1f else 0f,
-        animationSpec = androidx.compose.animation.core.spring(
-            dampingRatio = 0.62f,
-            stiffness = 380f,
-        ),
-        label = "editorCollapse",
-    )
     val titleSize by androidx.compose.animation.core.animateFloatAsState(
         targetValue = if (collapsed) 23f else 30f,
         animationSpec = androidx.compose.animation.core.spring(
@@ -215,7 +211,6 @@ fun JournalEditorScreen(
         ),
         label = "editorTitleSize",
     )
-    val headerTint = MaterialTheme.colorScheme.surface
     var headerHeight by remember { mutableStateOf(0.dp) }
     val density = androidx.compose.ui.platform.LocalDensity.current
 
@@ -277,7 +272,9 @@ fun JournalEditorScreen(
                             color = titleTint,
                         ),
                         cursorBrush = SolidColor(accent),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(titleFocusRequester),
                         decorationBox = { inner ->
                             if (note.title.isEmpty()) {
                                 Text(
@@ -439,10 +436,12 @@ fun JournalEditorScreen(
                 .align(Alignment.TopCenter)
                 .zIndex(2f)
                 .fillMaxWidth()
-                .background(
-                    color = headerTint.copy(alpha = 0.28f + 0.70f * collapseProgress),
-                    shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
-                )
+                .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
+                // 磨砂常开，不随滚动淡入淡出（对照 TokiStudio 0.1.10 的
+                // TokiScrollChipBackdrop）：glass 自带 22% 表面色 overlay，
+                // 不再叠一层随 collapseProgress 变化的实色 tint，那层正是
+                // 之前「滑动后磨砂消失」的根源之一。
+                .then(glass)
                 .statusBarsPadding()
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -457,7 +456,19 @@ fun JournalEditorScreen(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(start = 6.dp),
+                    .padding(start = 6.dp)
+                    .then(
+                        if (collapsed) {
+                            Modifier.clickable {
+                                scope.launch {
+                                    scrollState.scrollTo(0)
+                                    titleFocusRequester.requestFocus()
+                                }
+                            }
+                        } else {
+                            Modifier
+                        },
+                    ),
             ) {
                 androidx.compose.animation.AnimatedVisibility(
                     visible = collapsed,
@@ -967,7 +978,7 @@ private fun NoteInfoSheet(
                     onArchive()
                 },
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).height(56.dp),
             ) {
                 Icon(
                     imageVector = Icons.Filled.Archive,
@@ -975,7 +986,11 @@ private fun NoteInfoSheet(
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.preview_archive))
+                Text(
+                    stringResource(R.string.preview_archive),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
             }
             OutlinedButton(
                 onClick = { confirmDelete = true },
@@ -987,7 +1002,7 @@ private fun NoteInfoSheet(
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = MaterialTheme.colorScheme.error,
                 ),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).height(56.dp),
             ) {
                 Icon(
                     imageVector = Icons.Filled.Delete,
@@ -995,7 +1010,11 @@ private fun NoteInfoSheet(
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.action_delete))
+                Text(
+                    stringResource(R.string.action_delete),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
             }
         }
     }

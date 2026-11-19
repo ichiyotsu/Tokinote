@@ -464,16 +464,7 @@ private fun Chevron() {
 fun SettingsDetailHeader(title: String, onBack: () -> Unit) {
     ExpressiveTopBar(
         title = title,
-        alignStart = true,
-        titleStartPadding = 8.dp,
-        navigationIcon = {
-            GlassIconButton(
-                icon = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.action_back),
-                onClick = onBack,
-                modifier = Modifier.padding(start = 20.dp),
-            )
-        },
+        onBack = onBack,
     )
 }
 

@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,7 +36,6 @@ import com.tokinote.app.R
 import com.tokinote.app.data.FocusSession
 import com.tokinote.app.ui.LocalMotionEnabled
 import com.tokinote.app.ui.components.ExpressiveTopBar
-import com.tokinote.app.ui.components.GlassIconButton
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -80,15 +78,7 @@ fun FocusSummaryScreen(
     ) {
         ExpressiveTopBar(
             title = stringResource(R.string.focus_summary),
-            alignStart = true,
-            navigationIcon = {
-                GlassIconButton(
-                    icon = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.action_back),
-                    onClick = onBack,
-                    modifier = Modifier.padding(start = 20.dp),
-                )
-            },
+            onBack = onBack,
         )
 
         Column(

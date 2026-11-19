@@ -35,7 +35,10 @@ object TokiMotion {
 /**
  * 按压缩放反馈。传入与 clickable 共用的 [InteractionSource]，
  * 按下时轻微缩小，松开回弹，配合 MD3E 的「有生命的容器」手感。
+ * 动画规格不写死弹簧常数，直接读当前主题的 MotionScheme.fastSpatialSpec()
+ * —— 切换 expressive/standard 或开减少动效时，全 App 的按压手感随主题一起变。
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun Modifier.pressScale(
     interactionSource: InteractionSource,
@@ -45,11 +48,14 @@ fun Modifier.pressScale(
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (enabled && pressed) pressedScale else 1f,
-        animationSpec = TokiMotion.spatial,
+        animationSpec = androidx.compose.material3.MaterialTheme.motionScheme.fastSpatialSpec(),
         label = "pressScale",
     )
     return graphicsLayer {
         scaleX = scale
         scaleY = scale
+        // 0.1.7 教训：按压缩放的 graphicsLayer clip 会把动画中超调的内容切掉，
+        // 这里只缩放不裁剪，裁剪由调用方的形状负责。
+        clip = false
     }
 }

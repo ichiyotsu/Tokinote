@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -70,10 +71,12 @@ import com.tokinote.app.data.AppViewModel
 import com.tokinote.app.data.FocusComponent
 import com.tokinote.app.ui.components.FloatingNavBar
 import com.tokinote.app.ui.components.NavActionButton
+import com.tokinote.app.ui.focus.FocusMode
 import com.tokinote.app.ui.focus.FocusScreen
 import com.tokinote.app.ui.focus.FocusSummaryScreen
 import com.tokinote.app.ui.focus.FocusViewModel
 import com.tokinote.app.ui.focus.TimerSettingsScreen
+import com.tokinote.app.ui.notes.AlbumScreen
 import com.tokinote.app.ui.notes.CalendarScreen
 import com.tokinote.app.ui.notes.JournalEditorScreen
 import com.tokinote.app.ui.notes.MediaViewerScreen
@@ -86,8 +89,11 @@ import com.tokinote.app.ui.settings.ArchiveListScreen
 import com.tokinote.app.ui.settings.SettingsScreen
 import com.tokinote.app.ui.settings.SettingsSidebar
 import com.tokinote.app.ui.settings.UpdateAnnouncementHost
-import com.tokinote.app.ui.theme.LocalDarkTheme
-import com.tokinote.app.ui.theme.tokiGlass
+import com.tokinote.app.ui.theme.LocalBackdropBlur
+import com.tokinote.app.ui.theme.LocalHazeState
+import com.tokinote.app.ui.theme.tokiChrome
+import com.tokinote.app.ui.theme.tokiContentChrome
+import com.tokinote.app.ui.theme.tokiPageBackground
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
@@ -105,6 +111,8 @@ fun TokiNoteApp(viewModel: AppViewModel) {
         FocusComponent.installed(context)
     }
     val focusAvailable = settings.focusComponentEnabled && focusInstalled
+    // 相册组件是内置功能，不需要下载；开关一开，相册就从侧边栏移到到栏。
+    val albumAvailable = settings.albumComponentEnabled
     val configuration = LocalConfiguration.current
     val wideSettings = configuration.smallestScreenWidthDp >= 600 &&
         configuration.screenWidthDp > configuration.screenHeightDp
@@ -112,16 +120,13 @@ fun TokiNoteApp(viewModel: AppViewModel) {
     val focusViewModel: FocusViewModel = viewModel()
     val focusState by focusViewModel.state.collectAsStateWithLifecycle()
     val hazeState = rememberHazeState()
-    val darkTheme = LocalDarkTheme.current
-    val smoke = if (darkTheme) Color.Black.copy(alpha = 0.16f) else Color.Black.copy(alpha = 0.03f)
-    val frost = Color.White.copy(alpha = if (darkTheme) 0.08f else 0.10f)
-    val glassFallback = Color.Black.copy(alpha = if (darkTheme) 0.55f else 0.30f)
-    val glass = Modifier.tokiGlass(
-        hazeState = hazeState,
-        blurRadius = 30.dp,
-        tints = listOf(smoke, frost),
-        fallback = glassFallback,
-    )
+    // 全 App 只有这一处定义玻璃（对照 TokiStudio 0.1.10）：固定尺寸的表面
+    // （独立按钮、编辑页顶栏）走 Backdrop 采样的 tokiChrome；尺寸会变的
+    // 底栏胶囊走内容源采样的 tokiContentChrome。之前这里手写 30dp + 自定
+    // tint，各页还另起炉灶（抽屉自带一份），现在全部收敛到 Glass.kt 的
+    // 固定配方（24dp + 统一 frost/fallback）。
+    val glass = tokiChrome(hazeState, backdropBlur = true)
+    val barGlass = tokiContentChrome(hazeState, backdropBlur = true)
 
     LaunchedEffect(settings) { focusViewModel.configure(settings) }
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -171,6 +176,12 @@ fun TokiNoteApp(viewModel: AppViewModel) {
             backStack.add(Dest.Notes)
         }
     }
+    LaunchedEffect(albumAvailable) {
+        if (!albumAvailable && backStack.any { it == Dest.Album }) {
+            backStack.clear()
+            backStack.add(Dest.Notes)
+        }
+    }
     var settingsSearch by remember { mutableStateOf(false) }
     var previewOpen by remember { mutableStateOf(false) }
     var drawerOpen by remember { mutableStateOf(false) }
@@ -189,9 +200,13 @@ fun TokiNoteApp(viewModel: AppViewModel) {
 
     BackHandler(enabled = backStack.size > 1) { goBack() }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(tokiPageBackground())) {
+        CompositionLocalProvider(
+            LocalHazeState provides hazeState,
+            LocalBackdropBlur provides true,
+        ) {
         Scaffold(
-            containerColor = MaterialTheme.colorScheme.surface,
+            containerColor = Color.Transparent,
             contentWindowInsets = WindowInsets.safeDrawing,
             bottomBar = {
             AnimatedVisibility(
@@ -212,8 +227,9 @@ fun TokiNoteApp(viewModel: AppViewModel) {
                     modifier = Modifier
                         .navigationBarsPadding()
                         .padding(bottom = 8.dp),
-                    glass = glass,
+                    glass = barGlass,
                     showFocus = focusAvailable,
+                    showAlbum = albumAvailable,
                     action = if (selectedTab == Dest.Notes || selectedTab == Dest.Focus || selectedTab == Dest.Settings) {
                         {
                             androidx.compose.runtime.remember(selectedTab) { androidx.compose.animation.core.Animatable(0.55f) }.let { pop ->
@@ -283,6 +299,7 @@ fun TokiNoteApp(viewModel: AppViewModel) {
                     folders = folders,
                     labels = labels,
                     settings = settings,
+                    showAlbumInDrawer = !albumAvailable,
                     contentPadding = padding,
                     onOpenNote = ::openNote,
                     onOpenMedia = { noteId, index -> backStack.add(Dest.MediaViewer(noteId, index)) },
@@ -301,6 +318,12 @@ fun TokiNoteApp(viewModel: AppViewModel) {
                     onDrawerVisibilityChange = { drawerOpen = it },
                 )
 
+                Dest.Album -> AlbumScreen(
+                    notes = notes,
+                    contentPadding = padding,
+                    onOpenMedia = { noteId, index -> backStack.add(Dest.MediaViewer(noteId, index)) },
+                )
+
                 Dest.Focus -> FocusScreen(
                     state = focusState,
                     contentPadding = padding,
@@ -314,6 +337,14 @@ fun TokiNoteApp(viewModel: AppViewModel) {
                     onScheduleIndefinite = { delayMs ->
                         requestNotificationPermission()
                         focusViewModel.scheduleIndefinite(delayMs)
+                    },
+                    onEnd = focusViewModel::end,
+                    onRecordEnded = { segment ->
+                        if (segment.mode == FocusMode.Focus) {
+                            viewModel.recordFocusSession(segment.minutes, segment.endedAt)
+                        } else {
+                            viewModel.recordBreakSession(segment.minutes, segment.endedAt)
+                        }
                     },
                 )
 
@@ -340,6 +371,7 @@ fun TokiNoteApp(viewModel: AppViewModel) {
                             labels = labels,
                             showTime = settings.showTime,
                             contentPadding = padding,
+                            glass = glass,
                             onBack = { goBack() },
                             onChange = viewModel::updateNote,
                             onDelete = {
@@ -539,6 +571,7 @@ fun TokiNoteApp(viewModel: AppViewModel) {
             modifier = Modifier.fillMaxSize(),
         ) {
             DrawerSystemBarScrim()
+        }
         }
     }
 

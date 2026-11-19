@@ -84,6 +84,7 @@ private val folderRowDate = DateTimeFormatter.ofPattern("M月d日", Locale.CHINA
 fun GroupDrawer(
     open: Boolean,
     selectedTab: HomeTab,
+    showAlbum: Boolean = true,
     groups: List<NoteGroup>,
     folders: List<AlbumFolder>,
     selectedGroupId: String?,
@@ -159,11 +160,12 @@ fun GroupDrawer(
                         shape = RoundedCornerShape(34.dp),
                     ),
             ) {
+                // 玻璃只画一层：chrome 自带 22% 表面色 overlay，不再叠加半透明
+                // surfaceContainerLow（对照 TokiStudio 0.1.10，多层叠加会让模糊发闷）。
                 Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .then(glass)
-                        .background(MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.55f)),
+                        .then(glass),
                 )
                 Column(
                     modifier = Modifier
@@ -188,12 +190,14 @@ fun GroupDrawer(
                         selected = selectedTab == HomeTab.Notes,
                         onClick = { onSelectTab(HomeTab.Notes) },
                     )
-                    DrawerTabRow(
-                        label = stringResource(R.string.nav_album),
-                        icon = Icons.Filled.Photo,
-                        selected = selectedTab == HomeTab.Album,
-                        onClick = { onSelectTab(HomeTab.Album) },
-                    )
+                    if (showAlbum) {
+                        DrawerTabRow(
+                            label = stringResource(R.string.nav_album),
+                            icon = Icons.Filled.Photo,
+                            selected = selectedTab == HomeTab.Album,
+                            onClick = { onSelectTab(HomeTab.Album) },
+                        )
+                    }
                     DrawerTabRow(
                         label = stringResource(R.string.tab_stats),
                         icon = Icons.Filled.BarChart,
@@ -241,46 +245,48 @@ fun GroupDrawer(
                         }
                     }
 
-                    Spacer(Modifier.height(10.dp))
-                    CollapsibleHeader(
-                        title = stringResource(R.string.drawer_album_section),
-                        expanded = albumExpanded,
-                        onToggle = { albumExpanded = !albumExpanded },
-                    )
-                    AnimatedVisibility(
-                        visible = albumExpanded,
-                        enter = expandVertically(
-                            animationSpec = spring(dampingRatio = 0.6f, stiffness = 420f),
-                        ) + fadeIn(tween(160)),
-                        exit = shrinkVertically(
-                            animationSpec = spring(dampingRatio = 0.82f, stiffness = 420f),
-                        ) + fadeOut(tween(120)),
-                    ) {
-                        Column {
-                            DrawerRow(
-                                label = stringResource(R.string.drawer_all_photos),
-                                icon = Icons.Filled.Photo,
-                                selected = selectedTab == HomeTab.Album && selectedFolderId == null,
-                                count = photos.size,
-                                onClick = { onSelectFolder(null) },
-                            )
-                            folders.forEach { folder ->
+                    if (showAlbum) {
+                        Spacer(Modifier.height(10.dp))
+                        CollapsibleHeader(
+                            title = stringResource(R.string.drawer_album_section),
+                            expanded = albumExpanded,
+                            onToggle = { albumExpanded = !albumExpanded },
+                        )
+                        AnimatedVisibility(
+                            visible = albumExpanded,
+                            enter = expandVertically(
+                                animationSpec = spring(dampingRatio = 0.6f, stiffness = 420f),
+                            ) + fadeIn(tween(160)),
+                            exit = shrinkVertically(
+                                animationSpec = spring(dampingRatio = 0.82f, stiffness = 420f),
+                            ) + fadeOut(tween(120)),
+                        ) {
+                            Column {
                                 DrawerRow(
-                                    label = folder.name,
-                                    icon = Icons.Filled.Folder,
-                                    selected = selectedTab == HomeTab.Album && selectedFolderId == folder.id,
-                                    count = folder.paths.size,
-                                    subtitle = Instant.ofEpochMilli(folder.createdAt)
-                                        .atZone(ZoneId.systemDefault())
-                                        .format(folderRowDate),
-                                    onClick = { onSelectFolder(folder.id) },
-                                    onLongClick = { onEditFolder(folder) },
+                                    label = stringResource(R.string.drawer_all_photos),
+                                    icon = Icons.Filled.Photo,
+                                    selected = selectedTab == HomeTab.Album && selectedFolderId == null,
+                                    count = photos.size,
+                                    onClick = { onSelectFolder(null) },
+                                )
+                                folders.forEach { folder ->
+                                    DrawerRow(
+                                        label = folder.name,
+                                        icon = Icons.Filled.Folder,
+                                        selected = selectedTab == HomeTab.Album && selectedFolderId == folder.id,
+                                        count = folder.paths.size,
+                                        subtitle = Instant.ofEpochMilli(folder.createdAt)
+                                            .atZone(ZoneId.systemDefault())
+                                            .format(folderRowDate),
+                                        onClick = { onSelectFolder(folder.id) },
+                                        onLongClick = { onEditFolder(folder) },
+                                    )
+                                }
+                                CreateRow(
+                                    label = stringResource(R.string.folder_add),
+                                    onClick = onCreateFolder,
                                 )
                             }
-                            CreateRow(
-                                label = stringResource(R.string.folder_add),
-                                onClick = onCreateFolder,
-                            )
                         }
                     }
 

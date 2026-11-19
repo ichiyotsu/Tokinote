@@ -80,6 +80,9 @@ class FocusViewModel(application: Application) : AndroidViewModel(application) {
 
     fun skip() = engine.skip()
 
+    /** 手动结束当前这一段，带回已走时长供界面决定是否记录。 */
+    fun end(): EndedSegment = engine.end()
+
     fun startIndefinite() = engine.startIndefinite()
 
     /** 长按数字后等退场动画结束再开始正向计时。延迟放在引擎里，旋转不会把这次启动弄丢。 */

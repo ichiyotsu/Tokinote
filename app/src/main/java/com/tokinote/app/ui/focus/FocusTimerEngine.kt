@@ -191,6 +191,35 @@ class FocusTimerEngine(
         }
     }
 
+    /**
+     * 手动结束当前这一段：停表并回到该模式的空闲状态，带回已经走过的时长。
+     * 与自然完成不同，手动结束不推进循环、不记入统计、不发完成事件；
+     * 是否记入统计由界面在用户选择后决定。
+     */
+    fun end(): EndedSegment {
+        synchronized(lock) {
+            invalidateScheduleLocked()
+            stopTickerLocked()
+            val now = clock.elapsedRealtime()
+            val elapsed = when {
+                indefinite -> elapsedBaseMillis +
+                    (if (phase == FocusPhase.Running) (now - runStartedElapsed).coerceAtLeast(0L) else 0L)
+                phase == FocusPhase.Running && deadlineElapsed > 0L ->
+                    (totalMillis - (deadlineElapsed - now).coerceAtLeast(0L)).coerceAtLeast(0L)
+                else -> (totalMillis - remainingMillis).coerceAtLeast(0L)
+            }
+            val segment = EndedSegment(mode, elapsed, clock.wallClockMillis())
+            indefinite = false
+            elapsedBaseMillis = 0L
+            runStartedElapsed = 0L
+            deadlineElapsed = 0L
+            phase = FocusPhase.Idle
+            installIdleSegment(mode)
+            commitLocked()
+            return segment
+        }
+    }
+
     fun skip() {
         mutate {
             invalidateScheduleLocked()
@@ -539,4 +568,17 @@ class FocusTimerEngine(
         const val LATE_GRACE_MS = 3_000L
         const val REBOOT_SKEW_MS = 1_000L
     }
+}
+
+/**
+ * 手动结束时带回的一段计时：当时所处的模式、已经走过的时长与结束时刻。
+ * 是否记入统计由界面决定，引擎只负责停表，不在这里写记录。
+ */
+data class EndedSegment(
+    val mode: FocusMode,
+    val elapsedMillis: Long,
+    val endedAt: Long,
+) {
+    /** 整分钟数；不足一分钟时为 0，存储层会忽略 0 分钟的记录。 */
+    val minutes: Int get() = (elapsedMillis / 60_000L).toInt().coerceAtLeast(0)
 }
